@@ -1,7 +1,17 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 void main() => runApp(ByteBankApp());
+
+class ByteBankApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: ListTransfers(),
+      ),
+    );
+  }
+}
 
 class FormTransfers extends StatelessWidget {
   final TextEditingController _controllerCampNumberAccount =
@@ -16,74 +26,96 @@ class FormTransfers extends StatelessWidget {
         ),
         body: Column(
           children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
+            Edit(
                 controller: _controllerCampNumberAccount,
-                style: TextStyle(fontSize: 24.0),
-                decoration: InputDecoration(
-                    labelText: 'Numero da conta', hintText: '0000'),
-                keyboardType: TextInputType.number,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
+                label: "Numero da conta",
+                hint: "0000"),
+            Edit(
                 controller: _controllerCampValue,
-                style: TextStyle(fontSize: 24.0),
-                decoration: InputDecoration(
-                    labelText: 'Valor',
-                    hintText: '0.00',
-                    icon: Icon(Icons.monetization_on)),
-                keyboardType: TextInputType.number,
-              ),
-            ),
+                label: "Valor",
+                hint: "0.00",
+                icon: Icons.monetization_on),
             RaisedButton(
-              onPressed: () {
-                debugPrint("clicou");
-                final int numberAccount =
-                    int.tryParse(_controllerCampNumberAccount.text);
-                final double value = double.tryParse(_controllerCampValue.text);
-                if (numberAccount != null && value != null) {
-                  final TransferCreated = Transfer(value, numberAccount);
-                  debugPrint('$TransferCreated');
-                }
-              },
+              onPressed: () => _createTransfer(context),
               color: Colors.blue,
               child: Text('Confirmar'),
             )
           ],
         ));
   }
+
+  void _createTransfer(BuildContext context) {
+    final int numberAccount = int.tryParse(_controllerCampNumberAccount.text);
+    final double value = double.tryParse(_controllerCampValue.text);
+    if (numberAccount != null && value != null) {
+      final transferCreated = Transfer(value, numberAccount);
+      debugPrint("$transferCreated");
+      Navigator.pop(context, transferCreated);
+    }
+  }
 }
 
-class ByteBankApp extends StatelessWidget {
+class Edit extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String hint;
+  final IconData icon;
+
+  Edit({this.controller, this.label, this.hint, this.icon});
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: FormTransfers(),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: TextField(
+        controller: controller,
+        style: TextStyle(fontSize: 24.0),
+        decoration: InputDecoration(
+            labelText: label,
+            hintText: hint,
+            icon: icon != null ? Icon(icon) : null),
+        keyboardType: TextInputType.number,
       ),
     );
   }
 }
 
-class ListTransfers extends StatelessWidget {
+class ListTransfers extends StatefulWidget {
+  final List<Transfer> _transfers = List();
+
+  @override
+  State<StatefulWidget> createState() {
+    return ListTransferState();
+  }
+}
+
+class ListTransferState extends State<ListTransfers> {
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
     return Scaffold(
       appBar: AppBar(
         title: const Text('Transferências'),
       ),
-      body: Column(children: <Widget>[
-        ItemTransfers(Transfer(100, 1000)),
-        ItemTransfers(Transfer(200, 1000)),
-        ItemTransfers(Transfer(300, 1000))
-      ]),
+      body: ListView.builder(
+        itemCount: widget._transfers.length,
+        itemBuilder: (context, index) {
+          final transfer = widget._transfers[index];
+          return ItemTransfers(transfer);
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
-        onPressed: () {},
+        onPressed: () {
+          final Future<Transfer> future =
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
+            return FormTransfers();
+          }));
+          future.then((transferReceived) {
+            debugPrint("chegou no then do future");
+            debugPrint("$transferReceived");
+            widget._transfers.add(transferReceived);
+          });
+        },
       ),
     );
   }
